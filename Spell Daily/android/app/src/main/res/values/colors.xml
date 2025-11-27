@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Adaptive icon background color - using app's primary purple -->
+    <color name="ic_launcher_background">#6A1B9A</color>
+    <!-- Primary purple color for launch screen -->
+    <color name="primary_purple">#5103D5</color>
+</resources>
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -2,126 +2,79 @@ import 'package:flutter/material.dart';
 
 import '../app_colors.dart';
 import '../app_text_styles.dart';
-import '../controllers/streak_controller.dart';
 
+/// Visual states for the streak widget.
+///
+/// These map to the Figma variants 1–4:
+/// - pending   → "Complete today's game"
+/// - inProgress → "Playing now"
+/// - completed → "Game Completed"
+/// - reminder  → "Come back at midnight"
+enum StreakWidgetState { pending, inProgress, completed, reminder }
+
+/// Reusable streak card widget.
+///
+/// This is intentionally self-contained so it can be reused both in-app
+/// and inside a future multi-user homescreen widget.
 class StreakWidget extends StatelessWidget {
   const StreakWidget({
     super.key,
+    required this.loginCode,
     required this.streak,
-    required this.progress,
+    required this.lastCompletedDate,
+    required this.state,
   });
 
+  final String loginCode;
   final int streak;
-  final List<WeeklyProgress> progress;
+  final String lastCompletedDate;
+  final StreakWidgetState state;
+
+  Color get _stateColor => switch (state) {
+        StreakWidgetState.completed => AppColors.orange,
+        StreakWidgetState.inProgress => AppColors.purple,
+        StreakWidgetState.reminder => AppColors.darkPurple,
+        StreakWidgetState.pending => AppColors.lightPurple,
+      };
+
+  String get _stateLabel => switch (state) {
+        StreakWidgetState.completed => 'Game Completed',
+        StreakWidgetState.inProgress => 'Playing now',
+        StreakWidgetState.reminder => 'Come back at midnight',
+        StreakWidgetState.pending => 'Complete today\'s game',
+      };
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final tileSize = (width - 80) / 7;
-
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.darkPurple.withOpacity(0.75),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppColors.white.withOpacity(0.1), width: 2),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x33000000),
-            offset: Offset(0, 12),
-            blurRadius: 24,
-          ),
-        ],
+        color: AppColors.darkPurple.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _stateColor, width: 2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: const BoxDecoration(
-                  color: AppColors.orange,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.center_focus_strong,
-                  color: AppColors.purple,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Text(
-                '$streak DAY${streak == 1 ? '' : 'S'}',
-                style: AppTextStyles.button(width * 0.06),
-              ),
-            ],
+          Text('Code: $loginCode', style: AppTextStyles.body(16)),
+          const SizedBox(height: 8),
+          Text('Streak: $streak days', style: AppTextStyles.hero(24)),
+          const SizedBox(height: 8),
+          Text(
+            lastCompletedDate.isEmpty
+                ? 'Last completion: —'
+                : 'Last completion: $lastCompletedDate',
+            style: AppTextStyles.body(16),
           ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: progress
-                .map(
-                  (day) => _WeeklyTile(
-                    label: day.label,
-                    completed: day.completed,
-                    size: tileSize,
-                  ),
-                )
-                .toList(),
+          const SizedBox(height: 12),
+          Chip(
+            backgroundColor: _stateColor,
+            label: Text(
+              _stateLabel,
+              style: AppTextStyles.button(14),
+            ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _WeeklyTile extends StatelessWidget {
-  const _WeeklyTile({
-    required this.label,
-    required this.completed,
-    required this.size,
-  });
-
-  final String label;
-  final bool completed;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    if (completed) {
-      return Container(
-        width: size,
-        height: size,
-        decoration: const BoxDecoration(
-          color: AppColors.successGreen,
-          shape: BoxShape.circle,
-        ),
-        alignment: Alignment.center,
-        child: Image.asset(
-          'assets/images/tick.jpg',
-          width: size * 0.6,
-          height: size * 0.6,
-          fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => const Icon(
-            Icons.check,
-            color: AppColors.white,
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: AppColors.lightPurple.withOpacity(0.4),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        label,
-        style: AppTextStyles.label(size * 0.3),
       ),
     );
   }

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background: App's primary purple color -->
+    <background android:drawable="@color/ic_launcher_background"/>
+    <!-- Foreground: Logo image - Android will automatically ensure it stays within safe zone -->
+    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+</adaptive-icon>
+

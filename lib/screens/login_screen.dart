@@ -49,27 +49,36 @@ class LoginScreen extends GetView<AuthController> {
                 left: 0,
                 right: 0,
                 height: height * 0.45,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: spacing,
-                    vertical: height * 0.08,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Image.asset(
-                        'assets/images/logo.png',
-                        width: width * 0.45,
-                        fit: BoxFit.contain,
-                      ),
-                      SizedBox(height: height * 0.04),
-                      Text(
-                        'Login',
-                        style: AppTextStyles.hero(width * 0.1),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                child: SafeArea(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: spacing,
+                      vertical: height * 0.04,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            width: width * 0.45,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        SizedBox(height: height * 0.02),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Login',
+                              style: AppTextStyles.hero(width * 0.1),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -79,95 +88,108 @@ class LoginScreen extends GetView<AuthController> {
                 left: 0,
                 right: 0,
                 height: height * 0.55,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: spacing,
-                    vertical: height * 0.08,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(height: height * 0.06),
-                      Text(
-                        'Type code',
-                        style: AppTextStyles.hero(width * 0.12).copyWith(
-                          color: AppColors.purple,
-                        ),
-                        textAlign: TextAlign.center,
+                child: SafeArea(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: spacing,
+                        vertical: height * 0.04,
                       ),
-                      SizedBox(height: height * 0.04),
-                      Container(
-                        height: inputHeight,
-                        decoration: BoxDecoration(
-                          color: AppColors.white,
-                          borderRadius: BorderRadius.circular(28),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x33000000),
-                              blurRadius: 20,
-                              offset: Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: TextField(
-                          controller: controller.codeController,
-                          textCapitalization: TextCapitalization.characters,
-                          textAlign: TextAlign.center,
-                          style: AppTextStyles.label(
-                            width * 0.08,
-                            color: AppColors.purple,
-                          ).copyWith(letterSpacing: 12),
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            hintText: 'ARU123',
-                            hintStyle: TextStyle(
-                              color: AppColors.lightPurple,
-                              letterSpacing: 8,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SizedBox(height: height * 0.02),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Type code',
+                              style: AppTextStyles.hero(width * 0.12).copyWith(
+                                color: AppColors.purple,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
                           ),
-                        ),
-                      ),
-                      SizedBox(height: height * 0.04),
-                      Obx(
-                        () => GestureDetector(
-                          onTap: controller.isLoading.value
-                              ? null
-                              : () => controller.loginWithCode(
-                                  controller.codeController.text),
-                          child: Container(
-                            width: double.infinity,
-                            padding: EdgeInsets.symmetric(
-                              vertical: 20,
-                              horizontal: width * 0.06,
-                            ),
-                            decoration: AppTextStyles.buttonDecoration(
-                              background: AppColors.purple,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  controller.isLoading.value
-                                      ? 'Loading...'
-                                      : 'Get In',
-                                  style: AppTextStyles.button(width * 0.07),
-                                ),
-                                SizedBox(width: width * 0.04),
-                                Image.asset(
-                                  'assets/images/arrow.png',
-                                  height: width * 0.07,
-                                  color: AppColors.orange,
+                          SizedBox(height: height * 0.03),
+                          Container(
+                            height: inputHeight,
+                            decoration: BoxDecoration(
+                              color: AppColors.white,
+                              borderRadius: BorderRadius.circular(28),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x33000000),
+                                  blurRadius: 20,
+                                  offset: Offset(0, 10),
                                 ),
                               ],
                             ),
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: TextField(
+                              controller: controller.codeController,
+                              textCapitalization: TextCapitalization.characters,
+                              textAlign: TextAlign.center,
+                              style: AppTextStyles.label(
+                                width * 0.08,
+                                color: AppColors.purple,
+                              ).copyWith(letterSpacing: 12),
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                hintText: 'ARU123',
+                                hintStyle: TextStyle(
+                                  color: AppColors.lightPurple,
+                                  letterSpacing: 8,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
+                          SizedBox(height: height * 0.03),
+                          Obx(
+                            () => GestureDetector(
+                              onTap: controller.isLoading.value
+                                  ? null
+                                  : () => controller.loginWithCode(
+                                      controller.codeController.text),
+                              child: Container(
+                                width: double.infinity,
+                                padding: EdgeInsets.symmetric(
+                                  vertical: 20,
+                                  horizontal: width * 0.06,
+                                ),
+                                decoration: AppTextStyles.buttonDecoration(
+                                  background: AppColors.purple,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Flexible(
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          controller.isLoading.value
+                                              ? 'Loading...'
+                                              : 'Get In',
+                                          style: AppTextStyles.button(width * 0.07),
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(width: width * 0.04),
+                                    Image.asset(
+                                      'assets/images/arrow.png',
+                                      height: width * 0.07,
+                                      color: AppColors.orange,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: height * 0.02),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),

@@ -1,0 +1,24 @@
+{
+  "users": [
+    {
+      "loginCode": "ARU123",
+      "userId": "ARU123",
+      "streak": 3,
+      "lastCompletedDate": "2025-11-17",
+      "todayStatus": "completed",
+      "createdAt": 1690000000000,
+      "updatedAt": 1690000000000
+    },
+    {
+      "loginCode": "TES132",
+      "userId": "TES132",
+      "streak": 0,
+      "lastCompletedDate": "",
+      "todayStatus": "pending",
+      "createdAt": 1690000005000,
+      "updatedAt": 1690000005000
+    }
+  ]
+}
+
+

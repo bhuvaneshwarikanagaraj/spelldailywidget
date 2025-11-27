@@ -1,0 +1,58 @@
+name: spell_daily
+description: A Flutter app for daily spelling challenges with streak tracking
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI
+  cupertino_icons: ^1.0.6
+  google_fonts: ^6.1.0
+
+  # State management & routing
+  get: ^4.6.6
+  get_storage: ^2.1.1
+
+  # Firebase
+  firebase_core: ^3.0.0
+  cloud_firestore: ^5.0.0
+
+  # WebView for in-app game
+  webview_flutter: ^4.7.0
+
+  # Widgets & background work
+  home_widget: ^0.8.1
+  # Use a recent version compatible with the current Flutter/Android embedding.
+  workmanager: ^0.9.0+3
+  background_fetch: ^1.2.1
+
+  # Utilities
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+
+  # fonts:
+  #   - family: Bloc
+  #     fonts:
+  #       - asset: assets/fonts/Bloc.ttf
+  # Note: Bloc font file needs to be added to assets/fonts/ directory
+
+flutter_native_splash:
+  color: "#6A1B9A"
+  image: assets/images/logo.png
+  android: true
+  ios: false

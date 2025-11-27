@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launch splash screen with purple background and logo -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Purple background -->
+    <item android:drawable="@color/primary_purple" />
+
+    <!-- Logo centered -->
+    <item>
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/logo" />
+    </item>
+</layer-list>
+
+
+

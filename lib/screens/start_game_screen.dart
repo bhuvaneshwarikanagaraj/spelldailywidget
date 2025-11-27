@@ -67,27 +67,43 @@ class _StartGameScreenState extends State<StartGameScreen> {
                     Expanded(
                       child: SingleChildScrollView(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Center(
-                              child: Image.asset(
-                                'assets/images/start_game.png',
-                                height: height * 0.35,
-                                fit: BoxFit.contain,
-                              ),
+                            SizedBox(height: 20 * scale),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      'Ready?',
+                                      style: AppTextStyles.hero(width * 0.14),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 12 * scale),
+                                Image.asset(
+                                  'assets/images/arrow.png',
+                                  height: width * 0.12,
+                                  fit: BoxFit.contain,
+                                ),
+                              ],
                             ),
-                            SizedBox(height: 16 * scale),
-                            Text(
-                              'Ready?',
-                              style: AppTextStyles.hero(width * 0.14),
-                            ),
-                            SizedBox(height: 12 * scale),
+                            SizedBox(height: 20 * scale),
                             Obx(
-                              () => StreakWidget(
-                                streak: _streakController.streak.value,
-                                progress:
-                                    _streakController.getWeeklyProgress(),
-                              ),
+                              () {
+                                final args = Get.arguments as Map<String, dynamic>?;
+                                final code = args?['loginCode'] ?? _authController.storedLoginCode ?? '--';
+                                return StreakWidget(
+                                  loginCode: code,
+                                  streak: _streakController.streak.value,
+                                  lastCompletedDate: _streakController.lastCompletedDate.value,
+                                  state: _mapToWidgetState(_streakController),
+                                );
+                              },
                             ),
                             SizedBox(height: 20 * scale),
                             GestureDetector(
@@ -101,16 +117,20 @@ class _StartGameScreenState extends State<StartGameScreen> {
                                   background: AppColors.orange,
                                 ),
                                 child: Center(
-                                  child: Text(
-                                    'Start Game',
-                                    style: AppTextStyles.button(
-                                      width * 0.09,
-                                      color: AppColors.purple,
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      'Start Game',
+                                      style: AppTextStyles.button(
+                                        width * 0.09,
+                                        color: AppColors.purple,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
+                            SizedBox(height: 20 * scale),
                           ],
                         ),
                       ),
@@ -123,6 +143,26 @@ class _StartGameScreenState extends State<StartGameScreen> {
         },
       ),
     );
+  }
+
+  StreakWidgetState _mapToWidgetState(StreakController controller) {
+    if (controller.todayStatus.value == 'completed') {
+      return StreakWidgetState.completed;
+    }
+    if (controller.todayStatus.value == 'inProgress') {
+      return StreakWidgetState.inProgress;
+    }
+    // Check if it's a new day and game was completed yesterday
+    final today = DateTime.now();
+    final lastDate = controller.lastCompletedDate.value;
+    if (lastDate.isNotEmpty && lastDate != _formatDate(today)) {
+      return StreakWidgetState.reminder;
+    }
+    return StreakWidgetState.pending;
+  }
+
+  String _formatDate(DateTime dateTime) {
+    return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}';
   }
 }
 

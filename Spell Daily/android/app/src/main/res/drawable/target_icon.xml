@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32">
+    <!-- Outer red circle -->
+    <path
+        android:fillColor="#FF0000"
+        android:pathData="M16,0 C25,0 32,7 32,16 C32,25 25,32 16,32 C7,32 0,25 0,16 C0,7 7,0 16,0 Z" />
+    <!-- White ring (middle circle) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,6 C21,6 26,11 26,16 C26,21 21,26 16,26 C11,26 6,21 6,16 C6,11 11,6 16,6 Z" />
+    <!-- Inner red circle (bullseye) -->
+    <path
+        android:fillColor="#FF0000"
+        android:pathData="M16,10 C19,10 22,13 22,16 C22,19 19,22 16,22 C13,22 10,19 10,16 C10,13 13,10 16,10 Z" />
+</vector>
