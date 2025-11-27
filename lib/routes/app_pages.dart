@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import '../screens/login_screen.dart';
 import '../screens/result_screen.dart';
 import '../screens/start_game_screen.dart';
-import '../screens/webview_game_screen.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -15,10 +14,6 @@ class AppPages {
     GetPage(
       name: Routes.startGame,
       page: () => const StartGameScreen(),
-    ),
-    GetPage(
-      name: Routes.webviewGame,
-      page: () => const WebviewGameScreen(),
     ),
     GetPage(
       name: Routes.result,

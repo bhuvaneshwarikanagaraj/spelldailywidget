@@ -1,6 +1,6 @@
+import 'package:background_fetch/background_fetch.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
@@ -10,21 +10,19 @@ import 'controllers/game_controller.dart';
 import 'controllers/streak_controller.dart';
 import 'routes/app_pages.dart';
 import 'routes/app_routes.dart';
+import 'services/widget_state_service.dart';
+import 'services/widget_update_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await GetStorage.init();
-  
-  // Check if user is already logged in to set initial route
-  final storage = GetStorage();
-  final loginCode = storage.read<String>('loginCode');
-  final initialRoute = loginCode != null && loginCode.isNotEmpty 
-      ? Routes.startGame 
-      : Routes.login;
-  
-  runApp(MyApp(initialRoute: initialRoute));
+  await WidgetStateService.instance.bootstrap();
+  await WidgetUpdateService.instance.init();
+  BackgroundFetch.registerHeadlessTask(widgetBackgroundFetch);
+  runApp(const MyApp());
 }
+
 
 class InitialBinding extends Bindings {
   InitialBinding();
@@ -37,48 +35,8 @@ class InitialBinding extends Bindings {
   }
 }
 
-class MyApp extends StatefulWidget {
-  final String initialRoute;
-  
-  const MyApp({super.key, required this.initialRoute});
-
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  @override
-  void initState() {
-    super.initState();
-    // Check for widget launch after the app initializes
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _handleWidgetLaunch();
-    });
-  }
-
-  Future<void> _handleWidgetLaunch() async {
-    try {
-      const platform = MethodChannel('com.company.spelldaily/navigation');
-      final dynamic result = await platform.invokeMethod('getInitialArguments');
-      if (result is Map && result['route'] != null) {
-        final route = result['route'] as String;
-        if (route == Routes.webviewGame) {
-          // Navigate directly to webview game (user is logged in)
-          final loginCode = result['loginCode'] as String?;
-          Get.offAllNamed(
-            Routes.webviewGame,
-            arguments: loginCode != null ? {'loginCode': loginCode} : null,
-          );
-        } else if (route == Routes.login) {
-          // Navigate to login (user is not logged in)
-          Get.offAllNamed(Routes.login);
-        }
-      }
-    } catch (e) {
-      // Widget navigation not available or failed, continue with normal flow
-      debugPrint('Widget navigation check: $e');
-    }
-  }
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +44,7 @@ class _MyAppState extends State<MyApp> {
       title: 'Spell Daily',
       debugShowCheckedModeBanner: false,
       initialBinding: InitialBinding(),
-      initialRoute: widget.initialRoute,
+      initialRoute: Routes.login,
       getPages: AppPages.pages,
       theme: ThemeData(
         scaffoldBackgroundColor: AppColors.purple,

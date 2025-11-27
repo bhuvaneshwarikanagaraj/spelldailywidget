@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../routes/app_routes.dart';
 import '../services/firestore_service.dart';
@@ -10,16 +11,28 @@ class GameController extends GetxController {
   final AuthController _authController = Get.find<AuthController>();
   final StreakController _streakController = Get.find<StreakController>();
 
-  void startGame() {
+  Future<void> startGame() async {
     final code = _authController.storedLoginCode;
     if (code == null) {
       Get.offAllNamed(Routes.login);
       return;
     }
-    Get.toNamed(Routes.webviewGame, arguments: {'loginCode': code});
+    
+    final url = 'https://app.spelldaily.com/?code=$code';
+    final uri = Uri.parse(url);
+    
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      Get.snackbar('Error', 'Could not launch browser');
+    }
   }
 
-  Future<void> onWebViewClosed() async {
+  /// Checks game completion status and navigates to result screen.
+  /// 
+  /// This can be called manually to check if the game was completed
+  /// after opening it in the external browser.
+  Future<void> checkGameCompletion() async {
     final code = _authController.storedLoginCode;
     if (code == null) {
       Get.offAllNamed(Routes.login);
@@ -33,6 +46,11 @@ class GameController extends GetxController {
       await _streakController.updateStreakAfterCompletion();
     }
     Get.offAllNamed(Routes.result, arguments: {'success': success});
+  }
+
+  @Deprecated('Use checkGameCompletion() instead. This method is kept for backward compatibility.')
+  Future<void> onWebViewClosed() async {
+    return checkGameCompletion();
   }
 }
 

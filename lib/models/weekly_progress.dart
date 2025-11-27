@@ -10,3 +10,4 @@ class WeeklyProgress {
   final bool isToday;
 }
 
+

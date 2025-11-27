@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../routes/app_routes.dart';
 import '../services/firestore_service.dart';
-import 'streak_controller.dart';
+import '../services/widget_state_service.dart';
 
 const String kLoginCodeKey = 'loginCode';
 
@@ -23,6 +24,14 @@ class AuthController extends GetxController {
     final saved = storedLoginCode;
     if (saved != null) {
       codeController.text = saved;
+      // Sync to SharedPreferences for widget access
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setString('flutter.loginCode', saved);
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        WidgetStateService.instance.ensureDocument(saved);
+        WidgetStateService.instance.startListening(saved);
+      });
     }
   }
 
@@ -42,13 +51,15 @@ class AuthController extends GetxController {
       isLoading.value = true;
       await _service.createUserIfNotExists(trimmed);
       await _storage.write(kLoginCodeKey, trimmed);
-      
-      // Initialize streak controller subscription
-      final streakController = Get.find<StreakController>();
-      streakController.subscribeToUser(trimmed);
-      streakController.resetStatusIfNeeded();
-      
-      // Navigate to start game screen after login
+      // Also store in SharedPreferences for widget access
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('flutter.loginCode', trimmed);
+      await WidgetStateService.instance.ensureDocument(trimmed);
+      await WidgetStateService.instance.startListening(trimmed);
+      await WidgetStateService.instance.syncOnceFromFirestore(
+        loginCode: trimmed,
+      );
+      _storage.remove('from_widget_begin');
       Get.offAllNamed(Routes.startGame, arguments: {'loginCode': trimmed});
     } catch (e) {
       Get.snackbar('Login failed', e.toString());
@@ -57,4 +68,3 @@ class AuthController extends GetxController {
     }
   }
 }
-

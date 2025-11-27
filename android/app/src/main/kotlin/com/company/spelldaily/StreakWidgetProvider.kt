@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.view.View
 import android.widget.RemoteViews
 import org.json.JSONArray
@@ -56,27 +57,40 @@ class StreakWidgetProvider : AppWidgetProvider() {
             val state = json?.optString("state").orEmpty().ifEmpty { "state1" }
             val streakCount = json?.optInt("streakCount", 0) ?: 0
             val weekProgress = parseWeekProgress(json?.optJSONArray("weekProgress"))
+            val loginCode = json?.optString("loginCode").orEmpty().ifEmpty {
+                prefs.getString("flutter.loginCode", "") ?: ""
+            }
 
-            // Get login code from SharedPreferences (GetStorage stores data there)
-            // GetStorage typically stores keys with "flutter." prefix
-            val loginCode = prefs.getString("flutter.loginCode", null) 
-                ?: prefs.getString("loginCode", null)
-            
             val views = RemoteViews(context.packageName, R.layout.widget_layout)
-            val launchIntent = Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                // Navigate directly to webview game if login code exists
-                if (!loginCode.isNullOrBlank()) {
-                    putExtra("route", "/webview-game")
-                    putExtra("loginCode", loginCode)
-                } else {
-                    putExtra("route", "/")
+
+            if (loginCode.isNotEmpty()) {
+                views.setViewVisibility(R.id.widget_login_code, View.VISIBLE)
+                views.setTextViewText(
+                    R.id.widget_login_code,
+                    "CODE: ${loginCode.uppercase()}",
+                )
+            } else {
+                views.setViewVisibility(R.id.widget_login_code, View.GONE)
+            }
+
+            // Create intent to open browser with game URL
+            val browserIntent = if (loginCode.isNotEmpty()) {
+                val url = "https://app.spelldaily.com/?code=${loginCode.uppercase()}"
+                Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+            } else {
+                // Fallback: open app if no login code
+                Intent(context, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    putExtra("from_widget_begin", true)
                 }
             }
+            
             val pendingIntent = PendingIntent.getActivity(
                 context,
                 appWidgetId,
-                launchIntent,
+                browserIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
 

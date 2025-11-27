@@ -1,10 +1,13 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app_colors.dart';
 import '../app_text_styles.dart';
 import '../controllers/auth_controller.dart';
-import '../controllers/streak_controller.dart';
+import '../controllers/game_controller.dart';
 import '../routes/app_routes.dart';
 
 class LoginScreen extends GetView<AuthController> {
@@ -12,16 +15,25 @@ class LoginScreen extends GetView<AuthController> {
 
   @override
   Widget build(BuildContext context) {
-    // Check if user already has a stored login code and navigate to start game
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Check if user already has a stored login code and navigate accordingly
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final code = controller.storedLoginCode;
       if (code != null && code.isNotEmpty) {
-        // Initialize streak controller subscription
-        final streakController = Get.find<StreakController>();
-        streakController.subscribeToUser(code);
-        streakController.resetStatusIfNeeded();
-        // Navigate to start game screen
-        Get.offAllNamed(Routes.startGame, arguments: {'loginCode': code});
+        // Check if launched from widget BEGIN button (read from SharedPreferences directly)
+        final prefs = await SharedPreferences.getInstance();
+        final fromWidgetBegin = prefs.getBool('flutter.from_widget_begin') ?? false;
+        
+        // Clear the flag after reading
+        if (fromWidgetBegin) {
+          await prefs.remove('flutter.from_widget_begin');
+          // If from widget and logged in, open browser directly
+          final gameController = Get.find<GameController>();
+          await gameController.startGame();
+          // Stay on login screen as browser is opened externally
+        } else {
+          // Normal flow: go to start game page
+          Get.offAllNamed(Routes.startGame, arguments: {'loginCode': code});
+        }
       }
     });
     return Scaffold(
@@ -41,7 +53,10 @@ class LoginScreen extends GetView<AuthController> {
                 right: 0,
                 height: height * 0.55,
                 child: ClipPath(
-                  clipper: _OrangeWaveClipper(),
+                  clipper: _SineWaveClipper(
+                    amplitude: height * 0.06,
+                    waves: 1.5,
+                  ),
                   child: Container(
                     decoration: const BoxDecoration(
                       gradient: AppColors.orangeWave,
@@ -207,31 +222,28 @@ class LoginScreen extends GetView<AuthController> {
   }
 }
 
-class _OrangeWaveClipper extends CustomClipper<Path> {
+class _SineWaveClipper extends CustomClipper<Path> {
+  _SineWaveClipper({
+    required this.amplitude,
+    this.waves = 1.5,
+  });
+
+  final double amplitude;
+  final double waves;
+
   @override
   Path getClip(Size size) {
     final path = Path();
-    final waveHeight = size.height * 0.15;
-    final startY = 0.0; // Top of the orange section
-    
-    // Start from top-left
-    path.moveTo(0, startY);
-    
-    // Create horizontal wave pattern at the top of orange section
-    path.quadraticBezierTo(
-      size.width * 0.25,
-      startY + waveHeight,
-      size.width * 0.5,
-      startY,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.75,
-      startY - waveHeight * 0.5,
-      size.width,
-      startY + waveHeight * 0.3,
-    );
-    
-    // Complete the path to cover the entire orange section
+    final step = size.width / 40;
+
+    path.moveTo(0, amplitude);
+    for (double x = 0; x <= size.width; x += step) {
+      final normalized = x / size.width;
+      final y = amplitude +
+          amplitude *
+              math.sin(normalized * waves * 2 * math.pi);
+      path.lineTo(x, y.clamp(0.0, size.height));
+    }
     path.lineTo(size.width, size.height);
     path.lineTo(0, size.height);
     path.close();

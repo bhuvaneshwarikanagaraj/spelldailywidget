@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:home_widget/home_widget.dart';
 
 import '../models/streak_widget_state.dart';
-import '../models/weekly_progress.dart';
 
 class WidgetBridge {
   WidgetBridge._();
@@ -11,15 +10,16 @@ class WidgetBridge {
   static const _providerName = 'StreakWidgetProvider';
 
   static Future<void> update({
+    required String loginCode,
     required StreakWidgetState state,
     required int streakCount,
-    required List<WeeklyProgress> progress,
+    required List<bool> weekProgress,
   }) async {
     final payload = jsonEncode({
+      'loginCode': loginCode,
       'state': _mapState(state),
       'streakCount': streakCount,
-      'weekProgress':
-          progress.map((day) => day.completed).toList(growable: false),
+      'weekProgress': weekProgress,
     });
 
     await HomeWidget.saveWidgetData<String>('widget_payload', payload);
@@ -35,4 +35,5 @@ class WidgetBridge {
     };
   }
 }
+
 

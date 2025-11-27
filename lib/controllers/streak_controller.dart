@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 import '../models/streak_widget_state.dart';
 import '../models/weekly_progress.dart';
 import '../services/firestore_service.dart';
-import '../services/widget_bridge.dart';
+import '../services/widget_state_service.dart';
 
 class StreakController extends GetxController {
   final FirestoreService _service = FirestoreService.instance;
@@ -113,22 +113,30 @@ class StreakController extends GetxController {
       _stateRefreshTimer = Timer(const Duration(minutes: 5), () {
         _stateRefreshTimer = null;
         widgetState.value = _determineState();
-        unawaited(
-          WidgetBridge.update(
-            state: widgetState.value,
-            streakCount: streak.value,
-            progress: getWeeklyProgress(),
-          ),
-        );
+        final code = _loginCode;
+        if (code != null) {
+          unawaited(
+            WidgetStateService.instance.pushLocalState(
+              loginCode: code,
+              state: widgetState.value,
+              streakCount: streak.value,
+              progress: getWeeklyProgress(),
+            ),
+          );
+        }
       });
     }
-    unawaited(
-      WidgetBridge.update(
-        state: widgetState.value,
-        streakCount: streak.value,
-        progress: getWeeklyProgress(),
-      ),
-    );
+    final code = _loginCode;
+    if (code != null) {
+      unawaited(
+        WidgetStateService.instance.pushLocalState(
+          loginCode: code,
+          state: widgetState.value,
+          streakCount: streak.value,
+          progress: getWeeklyProgress(),
+        ),
+      );
+    }
   }
 
   StreakWidgetState _determineState() {
