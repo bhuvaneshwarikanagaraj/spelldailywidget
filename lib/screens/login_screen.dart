@@ -17,23 +17,25 @@ class LoginScreen extends GetView<AuthController> {
   Widget build(BuildContext context) {
     // Check if user already has a stored login code and navigate accordingly
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await controller.refreshPendingWidgetLink();
+      final pendingId = controller.pendingWidgetId.value;
       final code = controller.storedLoginCode;
+      final prefs = await SharedPreferences.getInstance();
+      final fromWidgetBegin =
+          prefs.getBool('flutter.from_widget_begin') ?? false;
+
+      if (pendingId != null) {
+        // Stay on login so the user can choose which code to link.
+        return;
+      }
+
+      if (fromWidgetBegin) {
+        // Widget launch without an assignment should not auto-navigate away.
+        return;
+      }
+
       if (code != null && code.isNotEmpty) {
-        // Check if launched from widget BEGIN button (read from SharedPreferences directly)
-        final prefs = await SharedPreferences.getInstance();
-        final fromWidgetBegin = prefs.getBool('flutter.from_widget_begin') ?? false;
-        
-        // Clear the flag after reading
-        if (fromWidgetBegin) {
-          await prefs.remove('flutter.from_widget_begin');
-          // If from widget and logged in, open browser directly
-          final gameController = Get.find<GameController>();
-          await gameController.startGame();
-          // Stay on login screen as browser is opened externally
-        } else {
-          // Normal flow: go to start game page
-          Get.offAllNamed(Routes.startGame, arguments: {'loginCode': code});
-        }
+        Get.offAllNamed(Routes.startGame, arguments: {'loginCode': code});
       }
     });
     return Scaffold(
@@ -121,6 +123,37 @@ class LoginScreen extends GetView<AuthController> {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           SizedBox(height: height * 0.02),
+                          Obx(
+                            () {
+                              final widgetId = controller.pendingWidgetId.value;
+                              if (widgetId == null) {
+                                return const SizedBox.shrink();
+                              }
+                              return Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                margin: const EdgeInsets.only(bottom: 16),
+                                decoration: BoxDecoration(
+                                  color: AppColors.purple.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: AppColors.purple.withOpacity(0.4),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Linking home-screen widget #$widgetId.\nEnter the login code you want this widget to display.',
+                                  style: AppTextStyles.body(width * 0.045)
+                                      .copyWith(
+                                    color: AppColors.purple,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              );
+                            },
+                          ),
                           FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Text(
@@ -191,8 +224,13 @@ class LoginScreen extends GetView<AuthController> {
                                         child: Text(
                                           controller.isLoading.value
                                               ? 'Loading...'
-                                              : 'Get In',
-                                          style: AppTextStyles.button(width * 0.07),
+                                              : (controller.pendingWidgetId
+                                                          .value !=
+                                                      null
+                                                  ? 'Link Widget'
+                                                  : 'Get In'),
+                                          style: AppTextStyles.button(
+                                              width * 0.07),
                                         ),
                                       ),
                                     ),
@@ -239,9 +277,8 @@ class _SineWaveClipper extends CustomClipper<Path> {
     path.moveTo(0, amplitude);
     for (double x = 0; x <= size.width; x += step) {
       final normalized = x / size.width;
-      final y = amplitude +
-          amplitude *
-              math.sin(normalized * waves * 2 * math.pi);
+      final y =
+          amplitude + amplitude * math.sin(normalized * waves * 2 * math.pi);
       path.lineTo(x, y.clamp(0.0, size.height));
     }
     path.lineTo(size.width, size.height);
@@ -253,4 +290,3 @@ class _SineWaveClipper extends CustomClipper<Path> {
   @override
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
-

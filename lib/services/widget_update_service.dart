@@ -26,7 +26,7 @@ class WidgetUpdateService {
   }
 
   Future<void> _onFetch(String taskId) async {
-    await WidgetStateService.instance.syncOnceFromFirestore();
+    await WidgetStateService.instance.syncAllFromFirestore();
     BackgroundFetch.finish(taskId);
   }
 
@@ -43,7 +43,6 @@ void widgetBackgroundFetch(HeadlessTask task) async {
   }
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  await WidgetStateService.instance.syncOnceFromFirestore();
+  await WidgetStateService.instance.syncAllFromFirestore();
   BackgroundFetch.finish(task.taskId);
 }
-

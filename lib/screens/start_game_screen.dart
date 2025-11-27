@@ -7,6 +7,7 @@ import '../app_text_styles.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/game_controller.dart';
 import '../routes/app_routes.dart';
+import '../services/widget_state_service.dart';
 
 class StartGameScreen extends StatelessWidget {
   const StartGameScreen({super.key});
@@ -24,11 +25,19 @@ class StartGameScreen extends StatelessWidget {
         Get.offAllNamed(Routes.login);
         return;
       }
-      
+
       // Check if launched from widget BEGIN button (read from SharedPreferences directly)
       final prefs = await SharedPreferences.getInstance();
-      final fromWidgetBegin = prefs.getBool('flutter.from_widget_begin') ?? false;
-      
+      final pendingWidgetId =
+          prefs.getInt(WidgetStateService.pendingWidgetIdKey);
+      if (pendingWidgetId != null) {
+        await prefs.remove('flutter.from_widget_begin');
+        Get.offAllNamed(Routes.login);
+        return;
+      }
+      final fromWidgetBegin =
+          prefs.getBool('flutter.from_widget_begin') ?? false;
+
       // Clear the flag after reading
       if (fromWidgetBegin) {
         await prefs.remove('flutter.from_widget_begin');
@@ -46,7 +55,7 @@ class StartGameScreen extends StatelessWidget {
             builder: (context, constraints) {
               final width = constraints.maxWidth;
               final height = constraints.maxHeight;
-              
+
               return SingleChildScrollView(
                 padding: EdgeInsets.symmetric(horizontal: width * 0.08),
                 child: Column(

@@ -1,5 +1,6 @@
 package com.company.spelldaily
 
+import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
@@ -25,15 +26,25 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
-        if (intent != null && intent.getBooleanExtra("from_widget_begin", false)) {
-            // Store flag in SharedPreferences for Flutter to read
+        if (intent == null) return
+        if (intent.getBooleanExtra("from_widget_begin", false)) {
+            val widgetId = intent.getIntExtra(
+                AppWidgetManager.EXTRA_APPWIDGET_ID,
+                AppWidgetManager.INVALID_APPWIDGET_ID,
+            )
             val prefs: SharedPreferences = getSharedPreferences(
                 "FlutterSharedPreferences",
-                MODE_PRIVATE
+                MODE_PRIVATE,
             )
-            prefs.edit().putBoolean("flutter.from_widget_begin", true).apply()
-            // Clear the flag from intent to avoid reprocessing
+            val editor = prefs.edit()
+            editor.putBoolean("flutter.from_widget_begin", true)
+            if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                editor.putInt("flutter.pending_widget_id", widgetId)
+            }
+            editor.commit()
+
             intent.removeExtra("from_widget_begin")
+            intent.removeExtra(AppWidgetManager.EXTRA_APPWIDGET_ID)
         }
     }
 }

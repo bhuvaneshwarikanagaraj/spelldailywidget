@@ -12,16 +12,19 @@ class WidgetStateService {
 
   static final WidgetStateService instance = WidgetStateService._();
 
+  static const _loginCodeKey = 'flutter.loginCode';
+  static const widgetAssignmentPrefix = 'flutter.widget.assignment.';
+  static const pendingWidgetIdKey = 'flutter.pending_widget_id';
+
   final CollectionReference<Map<String, dynamic>> _collection =
       FirebaseFirestore.instance.collection('widgetStates');
 
-  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
-      _stateSubscription;
+  final Map<String, StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>>
+      _listeners = {};
 
   Future<void> bootstrap() async {
-    final prefs = await SharedPreferences.getInstance();
-    final code = prefs.getString('flutter.loginCode');
-    if (code != null && code.isNotEmpty) {
+    final codes = await _trackedLoginCodes();
+    for (final code in codes) {
       await ensureDocument(code);
       await startListening(code);
       await syncOnceFromFirestore(loginCode: code);
@@ -29,12 +32,14 @@ class WidgetStateService {
   }
 
   Future<void> ensureDocument(String loginCode) async {
-    final docRef = _collection.doc(loginCode);
+    final normalized = loginCode.trim().toUpperCase();
+    if (normalized.isEmpty) return;
+    final docRef = _collection.doc(normalized);
     final snapshot = await docRef.get();
     if (snapshot.exists) return;
 
     await docRef.set({
-      'loginCode': loginCode,
+      'loginCode': normalized,
       'state': 'state1',
       'streakCount': 0,
       'weekProgress': List.generate(7, (_) => false),
@@ -44,15 +49,52 @@ class WidgetStateService {
   }
 
   Future<void> startListening(String loginCode) async {
-    await ensureDocument(loginCode);
-    await _stateSubscription?.cancel();
-    _stateSubscription = _collection.doc(loginCode).snapshots().listen(
-      (snapshot) {
-        final data = snapshot.data();
-        if (data == null) return;
-        _applyDataToWidget(data);
-      },
-    );
+    final normalized = loginCode.trim().toUpperCase();
+    if (normalized.isEmpty) return;
+
+    await ensureDocument(normalized);
+    if (_listeners.containsKey(normalized)) return;
+
+    final sub = _collection.doc(normalized).snapshots().listen((snapshot) {
+      final data = snapshot.data();
+      if (data == null) return;
+      _applyDataToWidget(loginCode: normalized, data: data);
+    });
+    _listeners[normalized] = sub;
+  }
+
+  Future<void> stopListening(String loginCode) async {
+    final normalized = loginCode.trim().toUpperCase();
+    final sub = _listeners.remove(normalized);
+    await sub?.cancel();
+  }
+
+  Future<void> linkWidgetToLoginCode({
+    required int widgetId,
+    required String loginCode,
+  }) async {
+    final normalized = loginCode.trim().toUpperCase();
+    if (normalized.isEmpty) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('${widgetAssignmentPrefix}$widgetId', normalized);
+    await WidgetBridge.saveAssignment(
+        widgetId: widgetId, loginCode: normalized);
+
+    await ensureDocument(normalized);
+    await startListening(normalized);
+    await syncOnceFromFirestore(loginCode: normalized);
+  }
+
+  Future<void> unlinkWidget(int widgetId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('${widgetAssignmentPrefix}$widgetId');
+    await WidgetBridge.clearAssignment(widgetId);
+  }
+
+  Future<Map<int, String>> currentAssignments() async {
+    final prefs = await SharedPreferences.getInstance();
+    return _extractAssignments(prefs);
   }
 
   Future<void> pushLocalState({
@@ -61,7 +103,10 @@ class WidgetStateService {
     required int streakCount,
     required List<WeeklyProgress> progress,
   }) async {
-    final docRef = _collection.doc(loginCode);
+    final normalized = loginCode.trim().toUpperCase();
+    if (normalized.isEmpty) return;
+
+    final docRef = _collection.doc(normalized);
     final snapshot = await docRef.get();
     final data = snapshot.data();
     if (data != null && data['manualOverride'] == true) {
@@ -70,7 +115,7 @@ class WidgetStateService {
 
     final weekFlags = progress.map((e) => e.completed).toList();
     final payload = {
-      'loginCode': loginCode,
+      'loginCode': normalized,
       'state': _stateToString(state),
       'streakCount': streakCount,
       'weekProgress': weekFlags,
@@ -80,7 +125,7 @@ class WidgetStateService {
 
     await docRef.set(payload, SetOptions(merge: true));
     await WidgetBridge.update(
-      loginCode: loginCode,
+      loginCode: normalized,
       state: state,
       streakCount: streakCount,
       weekProgress: weekFlags,
@@ -88,29 +133,74 @@ class WidgetStateService {
   }
 
   Future<void> syncOnceFromFirestore({String? loginCode}) async {
-    final resolvedCode = loginCode ?? await _storedLoginCode();
-    if (resolvedCode == null) return;
+    final resolvedCode =
+        (loginCode ?? await _storedLoginCode())?.trim().toUpperCase();
+    if (resolvedCode == null || resolvedCode.isEmpty) return;
+
     final snapshot = await _collection.doc(resolvedCode).get();
     final data = snapshot.data();
     if (data == null) return;
-    _applyDataToWidget(data);
+    _applyDataToWidget(loginCode: resolvedCode, data: data);
+  }
+
+  Future<void> syncAllFromFirestore() async {
+    final codes = await _trackedLoginCodes();
+    for (final code in codes) {
+      await syncOnceFromFirestore(loginCode: code);
+    }
   }
 
   Future<String?> _storedLoginCode() async {
     final prefs = await SharedPreferences.getInstance();
-    final code = prefs.getString('flutter.loginCode');
+    final code = prefs.getString(_loginCodeKey);
     if (code == null || code.isEmpty) return null;
     return code;
   }
 
-  void _applyDataToWidget(Map<String, dynamic> data) {
-    final loginCode = (data['loginCode'] as String?) ?? '--';
+  Future<Set<String>> _trackedLoginCodes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final codes = <String>{};
+
+    final stored = prefs.getString(_loginCodeKey);
+    if (stored != null && stored.isNotEmpty) {
+      codes.add(stored.trim().toUpperCase());
+    }
+
+    codes.addAll(_extractAssignments(prefs).values.map(
+          (code) => code.trim().toUpperCase(),
+        ));
+
+    codes.addAll(_listeners.keys);
+    codes.removeWhere((code) => code.isEmpty);
+    return codes;
+  }
+
+  Map<int, String> _extractAssignments(SharedPreferences prefs) {
+    final result = <int, String>{};
+    for (final key in prefs.getKeys()) {
+      if (!key.startsWith(widgetAssignmentPrefix)) continue;
+      final id = int.tryParse(key.substring(widgetAssignmentPrefix.length));
+      if (id == null) continue;
+      final value = prefs.getString(key);
+      if (value == null || value.isEmpty) continue;
+      result[id] = value;
+    }
+    return result;
+  }
+
+  void _applyDataToWidget({
+    required String loginCode,
+    required Map<String, dynamic> data,
+  }) {
+    final resolvedCode = loginCode.isNotEmpty
+        ? loginCode
+        : (data['loginCode'] as String? ?? '--');
     final streakCount = (data['streakCount'] as num?)?.toInt() ?? 0;
     final state = _parseState(data['state'] as String?);
     final weekProgress = _parseWeekProgress(data['weekProgress']);
 
     WidgetBridge.update(
-      loginCode: loginCode,
+      loginCode: resolvedCode,
       state: state,
       streakCount: streakCount,
       weekProgress: weekProgress,
@@ -150,4 +240,3 @@ class WidgetStateService {
     return result;
   }
 }
-

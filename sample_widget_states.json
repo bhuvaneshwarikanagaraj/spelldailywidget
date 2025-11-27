@@ -1,29 +1,44 @@
 {
   "widgetStates": [
     {
-      "id": "ARU123",
+      "id": "ABC123",
+      "description": "Default sample doc for widget QA",
       "data": {
-        "loginCode": "ARU123",
-        "state": "state2",
-        "streakCount": 4,
-        "weekProgress": [true, true, true, true, false, false, false],
-        "manualOverride": true,
+        "loginCode": "ABC123",
+        "state": "state1",
+        "streakCount": 0,
+        "weekProgress": [false, false, false, false, false, false, false],
+        "manualOverride": false,
         "lastPlayedDate": "2025-11-27",
         "lastUpdated": "SERVER_TIMESTAMP"
       }
-    },
-    {
-      "id": "TES132",
-      "data": {
-        "loginCode": "TES132",
-        "state": "state4",
-        "streakCount": 7,
-        "weekProgress": [true, true, true, true, true, true, false],
-        "manualOverride": true,
-        "lastPlayedDate": "2025-11-26",
-        "lastUpdated": "SERVER_TIMESTAMP"
-      }
     }
-  ]
+  ],
+  "statePresets": {
+    "state1": {
+      "state": "state1",
+      "streakCount": 0,
+      "weekProgress": [false, false, false, false, false, false, false],
+      "description": "Start challenge"
+    },
+    "state2": {
+      "state": "state2",
+      "streakCount": 3,
+      "weekProgress": [true, true, true, false, false, false, false],
+      "description": "Just completed today"
+    },
+    "state3": {
+      "state": "state3",
+      "streakCount": 7,
+      "weekProgress": [true, true, true, true, true, true, false],
+      "description": "Completed and locked for today"
+    },
+    "state4": {
+      "state": "state4",
+      "streakCount": 10,
+      "weekProgress": [true, true, true, true, true, true, true],
+      "description": "Awaiting today's play"
+    }
+  }
 }
 

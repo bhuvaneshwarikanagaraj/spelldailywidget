@@ -9,6 +9,7 @@ import android.content.Intent
 import android.net.Uri
 import android.view.View
 import android.widget.RemoteViews
+import es.antonborri.home_widget.HomeWidgetPlugin
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -34,18 +35,36 @@ class StreakWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
-        private const val PAYLOAD_KEY = "flutter.widget_payload"
+        private const val PAYLOAD_KEY = "widget_payload"
+        private const val PAYLOAD_PREFIX = "widget_payload_"
+        private const val ASSIGNMENT_PREF_PREFIX = "flutter.widget.assignment."
+        private const val ASSIGNMENT_WIDGET_PREFIX = "widget_assignment_"
 
         fun updateAppWidget(
             context: Context,
             appWidgetManager: AppWidgetManager,
             appWidgetId: Int,
         ) {
-            val prefs = context.getSharedPreferences(
+            val flutterPrefs = context.getSharedPreferences(
                 "FlutterSharedPreferences",
                 Context.MODE_PRIVATE,
             )
-            val payload = prefs.getString(PAYLOAD_KEY, null)
+            val widgetPrefs = HomeWidgetPlugin.getData(context)
+
+            val assignmentKey = "$ASSIGNMENT_PREF_PREFIX$appWidgetId"
+            val assignedLoginCode =
+                widgetPrefs.getString("$ASSIGNMENT_WIDGET_PREFIX$appWidgetId", null)
+                    ?.trim()
+                    ?.uppercase()
+                    ?: flutterPrefs.getString(assignmentKey, "")?.trim()?.uppercase()
+                    ?: ""
+            val payloadKey = if (assignedLoginCode.isNotEmpty()) {
+                "$PAYLOAD_PREFIX$assignedLoginCode"
+            } else {
+                PAYLOAD_KEY
+            }
+
+            val payload = widgetPrefs.getString(payloadKey, null)
             val json = payload?.let {
                 try {
                     JSONObject(it)
@@ -54,24 +73,31 @@ class StreakWidgetProvider : AppWidgetProvider() {
                 }
             }
 
-            val state = json?.optString("state").orEmpty().ifEmpty { "state1" }
-            val streakCount = json?.optInt("streakCount", 0) ?: 0
-            val weekProgress = parseWeekProgress(json?.optJSONArray("weekProgress"))
-            val loginCode = json?.optString("loginCode").orEmpty().ifEmpty {
-                prefs.getString("flutter.loginCode", "") ?: ""
+            val hasAssignment = assignedLoginCode.isNotEmpty()
+            val state = if (hasAssignment) {
+                json?.optString("state").orEmpty().ifEmpty { "state1" }
+            } else {
+                "unlinked"
             }
+            val streakCount = if (hasAssignment) json?.optInt("streakCount", 0) ?: 0 else 0
+            val weekProgress = if (hasAssignment) {
+                parseWeekProgress(json?.optJSONArray("weekProgress"))
+            } else {
+                BooleanArray(7) { false }
+            }
+            val loginCode = if (hasAssignment) assignedLoginCode else ""
 
             val views = RemoteViews(context.packageName, R.layout.widget_layout)
 
-            if (loginCode.isNotEmpty()) {
-                views.setViewVisibility(R.id.widget_login_code, View.VISIBLE)
-                views.setTextViewText(
-                    R.id.widget_login_code,
-                    "CODE: ${loginCode.uppercase()}",
-                )
-            } else {
-                views.setViewVisibility(R.id.widget_login_code, View.GONE)
-            }
+            views.setViewVisibility(R.id.widget_login_code, View.VISIBLE)
+            views.setTextViewText(
+                R.id.widget_login_code,
+                if (loginCode.isNotEmpty()) {
+                    "CODE: $loginCode"
+                } else {
+                    "TAP TO LINK"
+                },
+            )
 
             // Create intent to open browser with game URL
             val browserIntent = if (loginCode.isNotEmpty()) {
@@ -84,6 +110,7 @@ class StreakWidgetProvider : AppWidgetProvider() {
                 Intent(context, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     putExtra("from_widget_begin", true)
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
                 }
             }
             
@@ -95,11 +122,12 @@ class StreakWidgetProvider : AppWidgetProvider() {
             )
 
             when (state) {
-                "state1" -> renderStartState(views, pendingIntent)
+                "state1" -> renderStartState(views, pendingIntent, linkMode = false)
                 "state2" -> renderStreakState(views, streakCount, weekProgress, pendingIntent)
                 "state3" -> renderStreakState(views, streakCount, weekProgress, pendingIntent)
                 "state4" -> renderStreakState(views, streakCount, weekProgress, pendingIntent)
-                else -> renderStartState(views, pendingIntent)
+                "unlinked" -> renderStartState(views, pendingIntent, linkMode = true)
+                else -> renderStartState(views, pendingIntent, linkMode = false)
             }
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
@@ -108,12 +136,21 @@ class StreakWidgetProvider : AppWidgetProvider() {
         private fun renderStartState(
             views: RemoteViews,
             pendingIntent: PendingIntent,
+            linkMode: Boolean,
         ) {
             views.setViewVisibility(R.id.widget_logo_state1, View.VISIBLE)
             views.setViewVisibility(R.id.widget_title, View.VISIBLE)
             views.setViewVisibility(R.id.widget_begin_button, View.VISIBLE)
             views.setViewVisibility(R.id.widget_streak_info, View.GONE)
             views.setViewVisibility(R.id.widget_week_progress, View.GONE)
+            views.setTextViewText(
+                R.id.widget_title,
+                if (linkMode) "LINK YOUR WIDGET" else "START CHALLENGE",
+            )
+            views.setTextViewText(
+                R.id.widget_begin_button,
+                if (linkMode) "LINK" else "BEGIN",
+            )
             views.setOnClickPendingIntent(R.id.widget_begin_button, pendingIntent)
             views.setOnClickPendingIntent(R.id.widget_container, pendingIntent)
         }
