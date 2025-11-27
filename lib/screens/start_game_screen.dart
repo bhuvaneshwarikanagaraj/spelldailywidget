@@ -93,18 +93,19 @@ class _StartGameScreenState extends State<StartGameScreen> {
                               ],
                             ),
                             SizedBox(height: 20 * scale),
-                            Obx(
-                              () {
-                                final args = Get.arguments as Map<String, dynamic>?;
-                                final code = args?['loginCode'] ?? _authController.storedLoginCode ?? '--';
-                                return StreakWidget(
-                                  loginCode: code,
-                                  streak: _streakController.streak.value,
-                                  lastCompletedDate: _streakController.lastCompletedDate.value,
-                                  state: _mapToWidgetState(_streakController),
-                                );
-                              },
-                            ),
+                            Obx(() {
+                              return StreakWidget(
+                                state: _streakController.widgetState.value,
+                                streakCount: _streakController.streak.value,
+                                weeklyProgress:
+                                    _streakController.getWeeklyProgress(),
+                                lastPlayedDate:
+                                    _streakController.lastCompletedDate.value,
+                                onBegin: () {
+                                  Get.offAllNamed(Routes.login);
+                                },
+                              );
+                            }),
                             SizedBox(height: 20 * scale),
                             GestureDetector(
                               onTap: _gameController.startGame,
@@ -145,24 +146,5 @@ class _StartGameScreenState extends State<StartGameScreen> {
     );
   }
 
-  StreakWidgetState _mapToWidgetState(StreakController controller) {
-    if (controller.todayStatus.value == 'completed') {
-      return StreakWidgetState.completed;
-    }
-    if (controller.todayStatus.value == 'inProgress') {
-      return StreakWidgetState.inProgress;
-    }
-    // Check if it's a new day and game was completed yesterday
-    final today = DateTime.now();
-    final lastDate = controller.lastCompletedDate.value;
-    if (lastDate.isNotEmpty && lastDate != _formatDate(today)) {
-      return StreakWidgetState.reminder;
-    }
-    return StreakWidgetState.pending;
-  }
-
-  String _formatDate(DateTime dateTime) {
-    return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}';
-  }
 }
 

@@ -7,6 +7,7 @@
       "name": "spell_daily",
       "version": "1.0.0+1",
       "dependencies": [
+        "background_fetch",
         "cloud_firestore",
         "firebase_core",
         "flutter",
@@ -14,8 +15,12 @@
         "get",
         "get_storage",
         "google_fonts",
+        "home_widget",
         "intl",
-        "webview_flutter"
+        "webview_flutter",
+        "webview_flutter_android",
+        "webview_flutter_wkwebview",
+        "workmanager"
       ],
       "devDependencies": [
         "flutter_launcher_icons",
@@ -62,12 +67,57 @@
       ]
     },
     {
+      "name": "background_fetch",
+      "version": "1.5.0",
+      "dependencies": [
+        "flutter"
+      ]
+    },
+    {
+      "name": "workmanager",
+      "version": "0.9.0+3",
+      "dependencies": [
+        "flutter",
+        "workmanager_android",
+        "workmanager_apple",
+        "workmanager_platform_interface"
+      ]
+    },
+    {
+      "name": "home_widget",
+      "version": "0.8.1",
+      "dependencies": [
+        "flutter",
+        "path_provider",
+        "path_provider_foundation"
+      ]
+    },
+    {
       "name": "intl",
       "version": "0.19.0",
       "dependencies": [
         "clock",
         "meta",
         "path"
+      ]
+    },
+    {
+      "name": "webview_flutter_wkwebview",
+      "version": "3.23.4",
+      "dependencies": [
+        "flutter",
+        "meta",
+        "path",
+        "webview_flutter_platform_interface"
+      ]
+    },
+    {
+      "name": "webview_flutter_android",
+      "version": "4.10.9",
+      "dependencies": [
+        "flutter",
+        "meta",
+        "webview_flutter_platform_interface"
       ]
     },
     {
@@ -290,13 +340,48 @@
       ]
     },
     {
-      "name": "webview_flutter_wkwebview",
-      "version": "3.23.4",
+      "name": "workmanager_apple",
+      "version": "0.9.1+2",
+      "dependencies": [
+        "flutter",
+        "workmanager_platform_interface"
+      ]
+    },
+    {
+      "name": "workmanager_android",
+      "version": "0.9.0+2",
+      "dependencies": [
+        "flutter",
+        "workmanager_platform_interface"
+      ]
+    },
+    {
+      "name": "workmanager_platform_interface",
+      "version": "0.9.1+1",
       "dependencies": [
         "flutter",
         "meta",
-        "path",
-        "webview_flutter_platform_interface"
+        "plugin_platform_interface"
+      ]
+    },
+    {
+      "name": "path_provider_foundation",
+      "version": "2.4.4",
+      "dependencies": [
+        "flutter",
+        "path_provider_platform_interface"
+      ]
+    },
+    {
+      "name": "path_provider",
+      "version": "2.1.5",
+      "dependencies": [
+        "flutter",
+        "path_provider_android",
+        "path_provider_foundation",
+        "path_provider_linux",
+        "path_provider_platform_interface",
+        "path_provider_windows"
       ]
     },
     {
@@ -306,15 +391,6 @@
         "flutter",
         "meta",
         "plugin_platform_interface"
-      ]
-    },
-    {
-      "name": "webview_flutter_android",
-      "version": "4.10.9",
-      "dependencies": [
-        "flutter",
-        "meta",
-        "webview_flutter_platform_interface"
       ]
     },
     {
@@ -351,18 +427,6 @@
         "http_parser",
         "meta",
         "web"
-      ]
-    },
-    {
-      "name": "path_provider",
-      "version": "2.1.5",
-      "dependencies": [
-        "flutter",
-        "path_provider_android",
-        "path_provider_foundation",
-        "path_provider_linux",
-        "path_provider_platform_interface",
-        "path_provider_windows"
       ]
     },
     {
@@ -524,6 +588,44 @@
       ]
     },
     {
+      "name": "path_provider_platform_interface",
+      "version": "2.1.2",
+      "dependencies": [
+        "flutter",
+        "platform",
+        "plugin_platform_interface"
+      ]
+    },
+    {
+      "name": "path_provider_windows",
+      "version": "2.3.0",
+      "dependencies": [
+        "ffi",
+        "flutter",
+        "path",
+        "path_provider_platform_interface"
+      ]
+    },
+    {
+      "name": "path_provider_linux",
+      "version": "2.2.1",
+      "dependencies": [
+        "ffi",
+        "flutter",
+        "path",
+        "path_provider_platform_interface",
+        "xdg_directories"
+      ]
+    },
+    {
+      "name": "path_provider_android",
+      "version": "2.2.22",
+      "dependencies": [
+        "flutter",
+        "path_provider_platform_interface"
+      ]
+    },
+    {
       "name": "path_parsing",
       "version": "1.1.0",
       "dependencies": [
@@ -539,52 +641,6 @@
         "source_span",
         "string_scanner",
         "typed_data"
-      ]
-    },
-    {
-      "name": "path_provider_windows",
-      "version": "2.3.0",
-      "dependencies": [
-        "ffi",
-        "flutter",
-        "path",
-        "path_provider_platform_interface"
-      ]
-    },
-    {
-      "name": "path_provider_platform_interface",
-      "version": "2.1.2",
-      "dependencies": [
-        "flutter",
-        "platform",
-        "plugin_platform_interface"
-      ]
-    },
-    {
-      "name": "path_provider_linux",
-      "version": "2.2.1",
-      "dependencies": [
-        "ffi",
-        "flutter",
-        "path",
-        "path_provider_platform_interface",
-        "xdg_directories"
-      ]
-    },
-    {
-      "name": "path_provider_foundation",
-      "version": "2.4.4",
-      "dependencies": [
-        "flutter",
-        "path_provider_platform_interface"
-      ]
-    },
-    {
-      "name": "path_provider_android",
-      "version": "2.2.22",
-      "dependencies": [
-        "flutter",
-        "path_provider_platform_interface"
       ]
     },
     {
@@ -635,13 +691,13 @@
       "dependencies": []
     },
     {
-      "name": "ffi",
-      "version": "2.1.4",
+      "name": "platform",
+      "version": "3.1.6",
       "dependencies": []
     },
     {
-      "name": "platform",
-      "version": "3.1.6",
+      "name": "ffi",
+      "version": "2.1.4",
       "dependencies": []
     },
     {

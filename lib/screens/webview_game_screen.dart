@@ -39,11 +39,7 @@ class _WebviewGameScreenState extends State<WebviewGameScreen> {
     // Create platform-specific WebViewController
     late final PlatformWebViewControllerCreationParams params;
     if (WebViewPlatform.instance is AndroidWebViewPlatform) {
-      params = AndroidWebViewControllerCreationParams(
-        // Enable all browser features
-        webStorageEnabled: true,
-        databaseEnabled: true,
-      );
+      params = AndroidWebViewControllerCreationParams();
     } else if (WebViewPlatform.instance is WebKitWebViewPlatform) {
       params = WebKitWebViewControllerCreationParams(
         allowsInlineMediaPlayback: true,
@@ -55,7 +51,7 @@ class _WebviewGameScreenState extends State<WebviewGameScreen> {
     
     _webViewController = WebViewController.fromPlatformCreationParams(params)
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(AppColors.purple)
+      ..setBackgroundColor(Colors.white) // White background like normal browser
       ..setUserAgent(userAgent)
       ..enableZoom(true)
       ..setNavigationDelegate(
@@ -82,15 +78,14 @@ class _WebviewGameScreenState extends State<WebviewGameScreen> {
         },
       );
     
-    // Configure Android-specific settings
+    // Configure Android-specific settings for full browser experience
     if (_webViewController.platform is AndroidWebViewController) {
       AndroidWebViewController.enableDebugging(false);
-      (_webViewController.platform as AndroidWebViewController)
-        ..setMediaPlaybackRequiresUserGesture(false)
-        ..setDomStorageEnabled(true)
-        ..setThirdPartyCookiesEnabled(true)
-        ..setJavaScriptCanOpenWindowsAutomatically(true)
-        ..setSupportMultipleWindows(true);
+      final androidController =
+          _webViewController.platform as AndroidWebViewController;
+
+      // Enable media playback (audio/video) - allows sound to play
+      androidController.setMediaPlaybackRequiresUserGesture(false);
     }
     
     _webViewController.loadRequest(Uri.parse(url));
