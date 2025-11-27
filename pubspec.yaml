@@ -1,0 +1,43 @@
+name: spell_daily
+description: Spell Daily mobile app
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  get: ^4.6.6
+  get_storage: ^2.1.1
+  firebase_core: ^2.24.2
+  cloud_firestore: ^4.13.6
+  google_fonts: ^6.1.0
+  flutter_svg: ^2.0.9
+  webview_flutter: ^4.4.4
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/logo.png
+    - assets/images/logo.svg
+    - assets/images/arrow.png
+    - assets/images/tick.jpg
+    - assets/images/start_game.png
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/images/logo.png"
+  adaptive_icon_background: "#5E17EB"
+  adaptive_icon_foreground: "assets/images/logo.png"
+

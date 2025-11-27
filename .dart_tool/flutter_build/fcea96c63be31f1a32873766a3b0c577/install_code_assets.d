@@ -1,0 +1,1 @@
+ C:\\Users\\manik\\Downloads\\New\ folder\\spell\ daily\\.dart_tool\\flutter_build\\fcea96c63be31f1a32873766a3b0c577\\native_assets.json: 

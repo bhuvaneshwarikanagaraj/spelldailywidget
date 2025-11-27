@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "499513756080",
+    "project_id": "spell-daily-85ef0",
+    "storage_bucket": "spell-daily-85ef0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:499513756080:android:0352b0dcc8edb469632e75",
+        "android_client_info": {
+          "package_name": "com.company.spelldaily"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyArFz9u5sAK9xV99x3L58M8aTSt-Az5avQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
