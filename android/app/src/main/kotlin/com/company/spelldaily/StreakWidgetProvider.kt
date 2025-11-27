@@ -57,9 +57,21 @@ class StreakWidgetProvider : AppWidgetProvider() {
             val streakCount = json?.optInt("streakCount", 0) ?: 0
             val weekProgress = parseWeekProgress(json?.optJSONArray("weekProgress"))
 
+            // Get login code from SharedPreferences (GetStorage stores data there)
+            // GetStorage typically stores keys with "flutter." prefix
+            val loginCode = prefs.getString("flutter.loginCode", null) 
+                ?: prefs.getString("loginCode", null)
+            
             val views = RemoteViews(context.packageName, R.layout.widget_layout)
             val launchIntent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                // Navigate directly to webview game if login code exists
+                if (!loginCode.isNullOrBlank()) {
+                    putExtra("route", "/webview-game")
+                    putExtra("loginCode", loginCode)
+                } else {
+                    putExtra("route", "/")
+                }
             }
             val pendingIntent = PendingIntent.getActivity(
                 context,
