@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../app_colors.dart';
 import '../app_text_styles.dart';
+import '../controllers/auth_controller.dart';
 import '../routes/app_routes.dart';
 
 class ResultScreen extends StatelessWidget {
@@ -13,11 +14,22 @@ class ResultScreen extends StatelessWidget {
     final args = Get.arguments as Map<String, dynamic>?;
     final success = args?['success'] ?? false;
 
-    return success ? _SuccessView(onContinue: _goHome) : _FailureView(onRetry: _goHome);
+    return success ? _SuccessView(onContinue: _goHome) : _FailureView(onRetry: _tryAgain);
   }
 
   void _goHome() {
     Get.offAllNamed(Routes.startGame);
+  }
+
+  void _tryAgain() {
+    // Navigate directly to webview game to try again
+    final authController = Get.find<AuthController>();
+    final loginCode = authController.storedLoginCode;
+    if (loginCode != null) {
+      Get.offAllNamed(Routes.webviewGame, arguments: {'loginCode': loginCode});
+    } else {
+      Get.offAllNamed(Routes.login);
+    }
   }
 }
 

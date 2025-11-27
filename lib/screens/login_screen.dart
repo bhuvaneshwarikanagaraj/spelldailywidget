@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../app_colors.dart';
 import '../app_text_styles.dart';
 import '../controllers/auth_controller.dart';
+import '../controllers/streak_controller.dart';
 import '../routes/app_routes.dart';
 
 class LoginScreen extends GetView<AuthController> {
@@ -15,6 +16,11 @@ class LoginScreen extends GetView<AuthController> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final code = controller.storedLoginCode;
       if (code != null && code.isNotEmpty) {
+        // Initialize streak controller subscription
+        final streakController = Get.find<StreakController>();
+        streakController.subscribeToUser(code);
+        streakController.resetStatusIfNeeded();
+        // Navigate to start game screen
         Get.offAllNamed(Routes.startGame, arguments: {'loginCode': code});
       }
     });

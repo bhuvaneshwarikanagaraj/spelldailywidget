@@ -4,6 +4,7 @@ import 'package:get_storage/get_storage.dart';
 
 import '../routes/app_routes.dart';
 import '../services/firestore_service.dart';
+import 'streak_controller.dart';
 
 const String kLoginCodeKey = 'loginCode';
 
@@ -41,6 +42,13 @@ class AuthController extends GetxController {
       isLoading.value = true;
       await _service.createUserIfNotExists(trimmed);
       await _storage.write(kLoginCodeKey, trimmed);
+      
+      // Initialize streak controller subscription
+      final streakController = Get.find<StreakController>();
+      streakController.subscribeToUser(trimmed);
+      streakController.resetStatusIfNeeded();
+      
+      // Navigate to start game screen after login
       Get.offAllNamed(Routes.startGame, arguments: {'loginCode': trimmed});
     } catch (e) {
       Get.snackbar('Login failed', e.toString());

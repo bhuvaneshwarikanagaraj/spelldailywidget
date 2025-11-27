@@ -16,7 +16,14 @@ Future<void> main() async {
   await Firebase.initializeApp();
   await GetStorage.init();
   
-  runApp(const MyApp());
+  // Check if user is already logged in to set initial route
+  final storage = GetStorage();
+  final loginCode = storage.read<String>('loginCode');
+  final initialRoute = loginCode != null && loginCode.isNotEmpty 
+      ? Routes.startGame 
+      : Routes.login;
+  
+  runApp(MyApp(initialRoute: initialRoute));
 }
 
 class InitialBinding extends Bindings {
@@ -31,7 +38,9 @@ class InitialBinding extends Bindings {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final String initialRoute;
+  
+  const MyApp({super.key, required this.initialRoute});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -54,12 +63,15 @@ class _MyAppState extends State<MyApp> {
       if (result is Map && result['route'] != null) {
         final route = result['route'] as String;
         if (route == Routes.webviewGame) {
-          // Navigate directly to webview game
+          // Navigate directly to webview game (user is logged in)
           final loginCode = result['loginCode'] as String?;
           Get.offAllNamed(
             Routes.webviewGame,
             arguments: loginCode != null ? {'loginCode': loginCode} : null,
           );
+        } else if (route == Routes.login) {
+          // Navigate to login (user is not logged in)
+          Get.offAllNamed(Routes.login);
         }
       }
     } catch (e) {
@@ -74,7 +86,7 @@ class _MyAppState extends State<MyApp> {
       title: 'Spell Daily',
       debugShowCheckedModeBanner: false,
       initialBinding: InitialBinding(),
-      initialRoute: Routes.login,
+      initialRoute: widget.initialRoute,
       getPages: AppPages.pages,
       theme: ThemeData(
         scaffoldBackgroundColor: AppColors.purple,
