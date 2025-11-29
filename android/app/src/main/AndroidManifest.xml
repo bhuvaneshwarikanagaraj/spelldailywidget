@@ -42,6 +42,13 @@
         <receiver
             android:name=".WidgetUpdateReceiver"
             android:exported="false" />
+        <receiver
+            android:name=".WidgetActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.company.spelldaily.widget.ACTION_BEGIN" />
+            </intent-filter>
+        </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

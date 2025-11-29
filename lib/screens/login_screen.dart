@@ -15,28 +15,9 @@ class LoginScreen extends GetView<AuthController> {
 
   @override
   Widget build(BuildContext context) {
-    // Check if user already has a stored login code and navigate accordingly
+    // Always show login page - check for pending widget link
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await controller.refreshPendingWidgetLink();
-      final pendingId = controller.pendingWidgetId.value;
-      final code = controller.storedLoginCode;
-      final prefs = await SharedPreferences.getInstance();
-      final fromWidgetBegin =
-          prefs.getBool('flutter.from_widget_begin') ?? false;
-
-      if (pendingId != null) {
-        // Stay on login so the user can choose which code to link.
-        return;
-      }
-
-      if (fromWidgetBegin) {
-        // Widget launch without an assignment should not auto-navigate away.
-        return;
-      }
-
-      if (code != null && code.isNotEmpty) {
-        Get.offAllNamed(Routes.startGame, arguments: {'loginCode': code});
-      }
     });
     return Scaffold(
       body: LayoutBuilder(

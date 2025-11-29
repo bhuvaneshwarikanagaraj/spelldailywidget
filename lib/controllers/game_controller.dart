@@ -11,9 +11,9 @@ class GameController extends GetxController {
   final AuthController _authController = Get.find<AuthController>();
   final StreakController _streakController = Get.find<StreakController>();
 
-  Future<void> startGame() async {
-    final code = _authController.storedLoginCode;
-    if (code == null) {
+  Future<void> startGame({String? loginCode}) async {
+    final code = loginCode ?? _authController.storedLoginCode;
+    if (code == null || code.isEmpty) {
       Get.offAllNamed(Routes.login);
       return;
     }
@@ -32,9 +32,9 @@ class GameController extends GetxController {
   /// 
   /// This can be called manually to check if the game was completed
   /// after opening it in the external browser.
-  Future<void> checkGameCompletion() async {
-    final code = _authController.storedLoginCode;
-    if (code == null) {
+  Future<void> checkGameCompletion({String? loginCode}) async {
+    final code = loginCode ?? _authController.storedLoginCode;
+    if (code == null || code.isEmpty) {
       Get.offAllNamed(Routes.login);
       return;
     }

@@ -1,5 +1,170 @@
 ## Widget State Testing Guide
 
+Widgets can now live entirely on their own: each instance stores a JSON payload through the `home_widget` plugin, while Firestore (`widgetStates` collection) remains the source of truth for multi-device sync. Every widget supports **five** UI states that match the latest PNG mocks:
+
+| State | Code | Description | UI cue |
+|-------|------|-------------|--------|
+| 0 | `unlinked` | Widget not paired with a login code | Purple card + “Link your widget” |
+| 1 | `state1` | Linked, ready to start | Logo + BEGIN button showing CODE |
+| 2 | `state2` | User just tapped BEGIN | “Did you just do that?!” celebration |
+| 3 | `state3` | Same-day lock screen | Week progress row, no button |
+| 4 | `state4` | Waiting for today’s play | Week row + yellow “Start Game” button |
+
+When BEGIN is tapped, the widget immediately switches to **state2**, schedules a 10-minute job (state2 → state3) and a midnight job (state3 → state4) via `WorkManager`. No app relaunch is required.
+
+---
+
+### 1. Firestore collection schema
+
+- **Collection:** `widgetStates`
+- **Document ID:** uppercase login code
+- **Fields:**
+  - `loginCode` *(string)*
+  - `state` *(string)* – one of `unlinked`, `state1`, `state2`, `state3`, `state4`
+  - `streakCount` *(number)*
+  - `weekProgress` *(array<bool> length 7)*
+  - `manualOverride` *(bool)* – set to `true` when QA forces a value
+  - `lastPlayedDate` *(string, optional)*
+  - `lastUpdated` *(timestamp via `FieldValue.serverTimestamp()` )*
+
+See `sample_widget_states.json` for ready-to-import payloads.
+
+---
+
+### 2. Seed/reset the sample doc (`ABC123`)
+
+```sh
+firebase firestore:documents:set widgetStates/ABC123 \
+  --project <project-id> \
+  --data '{
+    loginCode:"ABC123",
+    state:"state1",
+    streakCount:0,
+    weekProgress:[false,false,false,false,false,false,false],
+    manualOverride:false,
+    lastPlayedDate:"2025-11-27",
+    lastUpdated:="__name__"
+  }'
+```
+
+---
+
+### 3. Quick commands to flip between states
+
+```sh
+# state0 – Unlinked
+firebase firestore:documents:update widgetStates/ABC123 \
+  --project <project-id> \
+  --data '{
+    state:"unlinked",
+    streakCount:0,
+    weekProgress:[false,false,false,false,false,false,false],
+    manualOverride:true
+  }'
+
+# state1 – Start challenge
+firebase firestore:documents:update widgetStates/ABC123 \
+  --project <project-id> \
+  --data '{
+    state:"state1",
+    streakCount:0,
+    weekProgress:[false,false,false,false,false,false,false],
+    manualOverride:true
+  }'
+
+# state2 – Just completed
+firebase firestore:documents:update widgetStates/ABC123 \
+  --project <project-id> \
+  --data '{
+    state:"state2",
+    streakCount:3,
+    weekProgress:[true,true,true,false,false,false,false],
+    manualOverride:true
+  }'
+
+# state3 – Completed today
+firebase firestore:documents:update widgetStates/ABC123 \
+  --project <project-id> \
+  --data '{
+    state:"state3",
+    streakCount:7,
+    weekProgress:[true,true,true,true,true,true,false],
+    manualOverride:true
+  }'
+
+# state4 – Awaiting today
+firebase firestore:documents:update widgetStates/ABC123 \
+  --project <project-id> \
+  --data '{
+    state:"state4",
+    streakCount:10,
+    weekProgress:[true,true,true,true,true,true,true],
+    manualOverride:true
+  }'
+```
+
+Setting `manualOverride:true` ensures the mobile app will not overwrite your manual test values until you reset it.
+
+---
+
+### 4. Pairing widgets with login codes
+
+1. Drop the widget on the Android home screen (shows state0).
+2. Tap it; the app opens Login with “Linking home-screen widget #<id>”.
+3. Enter the login code (e.g. `ABC123`) → **Link Widget**. The widget stores the assignment (`widget_assignment_<id>`) and switches to state1.
+4. Repeat for additional widgets. Each widget ID is isolated even if codes repeat.
+
+After linking:
+
+- Tapping BEGIN opens the browser, sets the widget to state2, and schedules the background transitions.
+- ~10 minutes later, state3 appears automatically.
+- After midnight, the widget becomes state4 and the yellow START GAME button returns.
+
+---
+
+### 5. Widget Admin screen (in-app QA console)
+
+1. Open **Start Game** → tap **Widget Admin**.
+2. Each row shows widget ID, login code, streak count, week flags, and state chip.
+3. Buttons `State 1`–`State 4` call `WidgetStateService.overrideState()` which:
+   - sets `manualOverride:true` in Firestore,
+   - persists the new payload via `WidgetBridge`,
+   - triggers `HomeWidget.updateWidget(name: 'StreakWidgetProvider')`, and
+   - updates only that widget’s RemoteViews.
+4. Use **Unlink** to clear the assignment (drops to state0) or the refresh icon if you changed Firestore manually.
+
+This screen is the recommended way to verify all five PNG-aligned layouts without juggling Firestore.
+
+---
+
+### 6. Forcing a background refresh
+
+Widgets refresh when:
+
+- Firestore listeners stream new data while the app is foregrounded.
+- `BackgroundFetch` wakes the headless Dart isolate (every ~15 minutes).
+- The app launches (`WidgetStateService.bootstrap()` re-syncs everything).
+
+Manual trigger:
+
+```sh
+adb shell cmd jobscheduler run -f com.company.spelldaily 999
+```
+
+This runs `widgetBackgroundFetch`, which calls `WidgetStateService.syncAllFromFirestore()` and `HomeWidget.updateWidget()` so the latest payload is rendered immediately.
+
+---
+
+### 7. Troubleshooting checklist
+
+- **Widget still says LINK:** ensure the widget ID is linked (Widget Admin shows the assignment) and the Firestore doc isn’t `state:"unlinked"`.
+- **Manual overrides not visible:** confirm `manualOverride:true`, hit refresh on Widget Admin, and confirm the login code matches exactly (case-sensitive).
+- **Timed transitions missing:** run `adb shell dumpsys jobscheduler | findstr widget_` to see pending jobs, or tap BEGIN again to reschedule. You can also trigger the workers inside Android Studio.
+- **Multiple widgets show identical data unexpectedly:** verify each widget ID in Widget Admin—link/unlink individually as needed. It’s valid to reuse a login code intentionally; those widgets will stay in sync by design.
+
+Use `sample_widget_states.json` for additional payload examples or clone it to seed more QA codes.
+## Widget State Testing Guide
+
 This project now supports pairing multiple home‑screen widgets with different login codes so you can monitor several streaks side‑by‑side. The `widgetStates` Firestore collection is the single source of truth for every widget instance. Updating a document in this collection (either manually in the Firebase Console or through the CLI) will push the new state to any widget that is linked to the corresponding `loginCode`. Background fetch runs every ~15 minutes (and also when the app is foregrounded) to keep widgets fresh even if the app is not running.
 
 ---

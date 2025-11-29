@@ -41,7 +41,7 @@ class MainActivity : FlutterActivity() {
             if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
                 editor.putInt("flutter.pending_widget_id", widgetId)
             }
-            editor.commit()
+            editor.apply()
 
             intent.removeExtra("from_widget_begin")
             intent.removeExtra(AppWidgetManager.EXTRA_APPWIDGET_ID)

@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:home_widget/home_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/streak_widget_state.dart';
+import '../models/widget_instance.dart';
 import '../models/weekly_progress.dart';
 import 'widget_bridge.dart';
 
@@ -14,13 +16,19 @@ class WidgetStateService {
 
   static const _loginCodeKey = 'flutter.loginCode';
   static const widgetAssignmentPrefix = 'flutter.widget.assignment.';
-  static const pendingWidgetIdKey = 'flutter.pending_widget_id';
+  static const pendingWidgetIdKey = 'pending_widget_id';
 
   final CollectionReference<Map<String, dynamic>> _collection =
       FirebaseFirestore.instance.collection('widgetStates');
 
   final Map<String, StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>>
       _listeners = {};
+  final Map<int, WidgetInstance> _widgetInstances = {};
+  final StreamController<List<WidgetInstance>> _widgetStreamController =
+      StreamController<List<WidgetInstance>>.broadcast();
+
+  Stream<List<WidgetInstance>> get widgetInstancesStream =>
+      _widgetStreamController.stream;
 
   Future<void> bootstrap() async {
     final codes = await _trackedLoginCodes();
@@ -29,6 +37,7 @@ class WidgetStateService {
       await startListening(code);
       await syncOnceFromFirestore(loginCode: code);
     }
+    await _reloadWidgetInstances();
   }
 
   Future<void> ensureDocument(String loginCode) async {
@@ -84,12 +93,26 @@ class WidgetStateService {
     await ensureDocument(normalized);
     await startListening(normalized);
     await syncOnceFromFirestore(loginCode: normalized);
+    final instance = WidgetInstance(
+      widgetId: widgetId,
+      loginCode: normalized,
+      state: StreakWidgetState.startChallenge,
+      lastStateChange: DateTime.now(),
+    );
+    _widgetInstances[widgetId] = instance;
+    await WidgetBridge.saveWidgetInstance(instance);
+    await HomeWidget.updateWidget(name: 'StreakWidgetProvider');
+    _emitWidgetInstances();
   }
 
   Future<void> unlinkWidget(int widgetId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('${widgetAssignmentPrefix}$widgetId');
     await WidgetBridge.clearAssignment(widgetId);
+    _widgetInstances.remove(widgetId);
+    await WidgetBridge.removeWidgetInstance(widgetId);
+    await HomeWidget.updateWidget(name: 'StreakWidgetProvider');
+    _emitWidgetInstances();
   }
 
   Future<Map<int, String>> currentAssignments() async {
@@ -129,6 +152,56 @@ class WidgetStateService {
       state: state,
       streakCount: streakCount,
       weekProgress: weekFlags,
+    );
+    unawaited(
+      _updateWidgetInstancesForLoginCode(
+        loginCode: normalized,
+        state: state,
+        streakCount: streakCount,
+        weekProgress: weekFlags,
+      ),
+    );
+  }
+
+  Future<void> overrideState({
+    required String loginCode,
+    required StreakWidgetState state,
+    int streakCount = 0,
+    List<bool>? weekProgress,
+  }) async {
+    final normalized = loginCode.trim().toUpperCase();
+    if (normalized.isEmpty) return;
+
+    final weekFlags = weekProgress ?? List<bool>.filled(7, false);
+    final payload = {
+      'loginCode': normalized,
+      'state': _stateToString(
+        state == StreakWidgetState.unlinked
+            ? StreakWidgetState.startChallenge
+            : state,
+      ),
+      'streakCount': streakCount,
+      'weekProgress': weekFlags,
+      'manualOverride': true,
+      'lastUpdated': FieldValue.serverTimestamp(),
+    };
+
+    await _collection.doc(normalized).set(payload, SetOptions(merge: true));
+    await WidgetBridge.update(
+      loginCode: normalized,
+      state: state == StreakWidgetState.unlinked
+          ? StreakWidgetState.startChallenge
+          : state,
+      streakCount: streakCount,
+      weekProgress: weekFlags,
+    );
+    unawaited(
+      _updateWidgetInstancesForLoginCode(
+        loginCode: normalized,
+        state: state,
+        streakCount: streakCount,
+        weekProgress: weekFlags,
+      ),
     );
   }
 
@@ -205,10 +278,20 @@ class WidgetStateService {
       streakCount: streakCount,
       weekProgress: weekProgress,
     );
+    unawaited(
+      _updateWidgetInstancesForLoginCode(
+        loginCode: resolvedCode,
+        state: state,
+        streakCount: streakCount,
+        weekProgress: weekProgress,
+      ),
+    );
   }
 
   StreakWidgetState _parseState(String? raw) {
     switch (raw) {
+      case 'unlinked':
+        return StreakWidgetState.unlinked;
       case 'state2':
         return StreakWidgetState.justCompleted;
       case 'state3':
@@ -223,6 +306,7 @@ class WidgetStateService {
 
   String _stateToString(StreakWidgetState state) {
     return switch (state) {
+      StreakWidgetState.unlinked => 'unlinked',
       StreakWidgetState.startChallenge => 'state1',
       StreakWidgetState.justCompleted => 'state2',
       StreakWidgetState.completedToday => 'state3',
@@ -238,5 +322,74 @@ class WidgetStateService {
       }
     }
     return result;
+  }
+
+  Future<void> _reloadWidgetInstances() async {
+    final assignments = await currentAssignments();
+    _widgetInstances.removeWhere((key, _) => !assignments.containsKey(key));
+    for (final entry in assignments.entries) {
+      final loginCode = entry.value.trim().toUpperCase();
+      final stored = await WidgetBridge.loadWidgetInstance(entry.key);
+      if (stored != null) {
+        _widgetInstances[entry.key] = stored.copyWith(loginCode: loginCode);
+        continue;
+      }
+      final fallback = WidgetInstance(
+        widgetId: entry.key,
+        loginCode: loginCode,
+        state: StreakWidgetState.startChallenge,
+        lastStateChange: DateTime.now(),
+      );
+      _widgetInstances[entry.key] = fallback;
+      await WidgetBridge.saveWidgetInstance(fallback);
+    }
+    _emitWidgetInstances();
+  }
+
+  Future<void> _updateWidgetInstancesForLoginCode({
+    required String loginCode,
+    required StreakWidgetState state,
+    required int streakCount,
+    required List<bool> weekProgress,
+  }) async {
+    final assignments = await currentAssignments();
+    bool changed = false;
+    for (final entry in assignments.entries) {
+      if (entry.value.toUpperCase() != loginCode.toUpperCase()) continue;
+      final existing = _widgetInstances[entry.key];
+      final updated = (existing ??
+              WidgetInstance(
+                widgetId: entry.key,
+                loginCode: entry.value,
+                state: state,
+              ))
+          .copyWith(
+        state: state,
+        streakCount: streakCount,
+        weekProgress: weekProgress,
+        lastStateChange: DateTime.now(),
+      );
+      _widgetInstances[entry.key] = updated;
+      await WidgetBridge.saveWidgetInstance(updated);
+      changed = true;
+    }
+    if (changed) {
+      await HomeWidget.updateWidget(name: 'StreakWidgetProvider');
+      _emitWidgetInstances();
+    }
+  }
+
+  void _emitWidgetInstances() {
+    final list = _widgetInstances.values.toList()
+      ..sort((a, b) => a.widgetId.compareTo(b.widgetId));
+    if (!_widgetStreamController.isClosed) {
+      _widgetStreamController.add(list);
+    }
+  }
+
+  Future<List<WidgetInstance>> listWidgetInstances() async {
+    await _reloadWidgetInstances();
+    return _widgetInstances.values.toList()
+      ..sort((a, b) => a.widgetId.compareTo(b.widgetId));
   }
 }

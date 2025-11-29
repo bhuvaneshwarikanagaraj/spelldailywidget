@@ -57,6 +57,7 @@ class StreakWidget extends StatelessWidget {
 
   Widget _buildStateContent() {
     switch (state) {
+      case StreakWidgetState.unlinked:
       case StreakWidgetState.startChallenge:
         return _StartChallengeView(onBegin: onBegin);
       case StreakWidgetState.justCompleted:
@@ -263,9 +264,7 @@ class _WeekDayBubble extends StatelessWidget {
           child: progress.completed
               ? const Icon(Icons.check, color: AppColors.purple, size: 20)
               : Text(
-                  progress.label.isEmpty
-                      ? ''
-                      : progress.label.substring(0, 1),
+                  progress.label.isEmpty ? '' : progress.label.substring(0, 1),
                   style: AppTextStyles.label(14),
                 ),
         ),
@@ -281,4 +280,3 @@ class _WeekDayBubble extends StatelessWidget {
     );
   }
 }
-

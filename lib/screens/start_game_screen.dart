@@ -17,38 +17,51 @@ class StartGameScreen extends StatelessWidget {
     final gameController = Get.find<GameController>();
     final authController = Get.find<AuthController>();
 
-    // Check if user is logged in, if not navigate to login
-    // Also check if launched from widget BEGIN button
+    // Get login code from arguments - if not present, go to login
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final code = authController.storedLoginCode;
-      if (code == null || code.isEmpty) {
+      final args = Get.arguments as Map<String, dynamic>?;
+      final loginCode = args?['loginCode'] as String?;
+      
+      if (loginCode == null || loginCode.isEmpty) {
         Get.offAllNamed(Routes.login);
         return;
       }
 
-      // Check if launched from widget BEGIN button (read from SharedPreferences directly)
+      // Check if launched from widget BEGIN button
       final prefs = await SharedPreferences.getInstance();
       final pendingWidgetId =
           prefs.getInt(WidgetStateService.pendingWidgetIdKey);
       if (pendingWidgetId != null) {
-        await prefs.remove('flutter.from_widget_begin');
+        await prefs.remove('from_widget_begin');
         Get.offAllNamed(Routes.login);
         return;
       }
       final fromWidgetBegin =
-          prefs.getBool('flutter.from_widget_begin') ?? false;
+          prefs.getBool('from_widget_begin') ?? false;
 
       // Clear the flag after reading
       if (fromWidgetBegin) {
-        await prefs.remove('flutter.from_widget_begin');
-        // If from widget and logged in, open browser directly
-        await gameController.startGame();
+        await prefs.remove('from_widget_begin');
+        // If from widget, open browser directly with the login code
+        await gameController.startGame(loginCode: loginCode);
         // Stay on start game screen as browser is opened externally
       }
     });
 
     return Scaffold(
       backgroundColor: AppColors.purple,
+      appBar: AppBar(
+        title: const Text('Start Game'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.toNamed(Routes.widgetAdmin),
+            child: const Text(
+              'Widget Admin',
+              style: TextStyle(color: AppColors.white),
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: LayoutBuilder(
@@ -71,7 +84,15 @@ class StartGameScreen extends StatelessWidget {
                     SizedBox(height: height * 0.15),
                     // Start Game button
                     GestureDetector(
-                      onTap: () => gameController.startGame(),
+                      onTap: () {
+                        final args = Get.arguments as Map<String, dynamic>?;
+                        final loginCode = args?['loginCode'] as String?;
+                        if (loginCode != null && loginCode.isNotEmpty) {
+                          gameController.startGame(loginCode: loginCode);
+                        } else {
+                          Get.offAllNamed(Routes.login);
+                        }
+                      },
                       child: Container(
                         width: double.infinity,
                         padding: EdgeInsets.symmetric(

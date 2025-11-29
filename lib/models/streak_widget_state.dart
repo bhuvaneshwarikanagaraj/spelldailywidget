@@ -1,4 +1,7 @@
 enum StreakWidgetState {
+  /// Widget has not been linked with a login code yet.
+  unlinked,
+
   /// New user or streak reset (Start Challenge)
   startChallenge,
 
@@ -11,5 +14,6 @@ enum StreakWidgetState {
   /// Next day of an active streak before playing (pending)
   awaitingToday,
 }
+
 
 

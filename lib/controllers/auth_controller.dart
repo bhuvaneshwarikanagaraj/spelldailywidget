@@ -17,23 +17,11 @@ class AuthController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxnInt pendingWidgetId = RxnInt();
 
-  String? get storedLoginCode => _storage.read<String>(kLoginCodeKey);
+  String? get storedLoginCode => null; // Never store login code globally
 
   @override
   void onInit() {
     super.onInit();
-    final saved = storedLoginCode;
-    if (saved != null) {
-      codeController.text = saved;
-      // Sync to SharedPreferences for widget access
-      SharedPreferences.getInstance().then((prefs) {
-        prefs.setString('flutter.loginCode', saved);
-      });
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        WidgetStateService.instance.ensureDocument(saved);
-        WidgetStateService.instance.startListening(saved);
-      });
-    }
     refreshPendingWidgetLink();
   }
 
@@ -60,16 +48,8 @@ class AuthController extends GetxController {
     try {
       isLoading.value = true;
       await _service.createUserIfNotExists(trimmed);
-      await _storage.write(kLoginCodeKey, trimmed);
-      // Also store in SharedPreferences for widget access
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('flutter.loginCode', trimmed);
-      await WidgetStateService.instance.ensureDocument(trimmed);
-      await WidgetStateService.instance.startListening(trimmed);
-      await WidgetStateService.instance.syncOnceFromFirestore(
-        loginCode: trimmed,
-      );
-      _storage.remove('from_widget_begin');
+      // Do NOT save login code globally - only pass it as argument
+      // Navigate to start game with login code in arguments
       Get.offAllNamed(Routes.startGame, arguments: {'loginCode': trimmed});
     } catch (e) {
       Get.snackbar('Login failed', e.toString());
@@ -101,7 +81,7 @@ class AuthController extends GetxController {
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(WidgetStateService.pendingWidgetIdKey);
-      await prefs.remove('flutter.from_widget_begin');
+      await prefs.remove('from_widget_begin');
 
       pendingWidgetId.value = null;
       Get.snackbar(
